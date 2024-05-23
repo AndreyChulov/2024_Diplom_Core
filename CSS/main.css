@@ -1,0 +1,34 @@
+body {
+    margin: 0;
+    padding: 0;
+    height: 100vh;
+    background:
+            repeating-linear-gradient(to bottom right, rgba(170, 240, 209, 0.8), rgba(128, 216, 177, 0.8) 200px, rgba(170, 240, 209, 0.8) 400px),
+            repeating-linear-gradient(to top left, rgba(240, 230, 140, 0.7), rgba(255, 215, 0, 0.7) 200px, rgba(240, 230, 140, 0.7) 400px),
+            repeating-linear-gradient(to bottom left, rgba(173, 216, 230, 0.9), rgba(135, 206, 235, 0.9) 200px, rgba(173, 216, 230, 0.9) 400px),
+            repeating-linear-gradient(to top right, rgba(135, 206, 235, 0.5), rgba(173, 216, 230, 0.5) 200px, rgba(135, 206, 235, 0.5) 400px);
+    font-family: Arial, sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    flex-direction: column;
+    flex-wrap: nowrap;
+}
+
+h1 {
+    color: #333;
+    font-size: 3em;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+p {
+    color: #666;
+    font-size: 1.2em;
+}
+
+a {
+    color: #34a98f;
+    font-size: 2.25em;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+}
