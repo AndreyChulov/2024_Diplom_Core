@@ -1,12 +1,3 @@
-<?php
-
-require_once dirname(__FILE__).'/Classes/Status.php';
-
-use Classes\Status;
-
-$status = new Status();
-?>
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -17,24 +8,24 @@ $status = new Status();
     <script defer src="JS/Install.js"></script>
 </head>
 <body>
-<hr>
-<h1>Инсталлятор сервера</h1>
-<hr>
-<table>
-    <tr>
-        <th>Компонент сервера</th>
-        <th>Статус</th>
-    </tr>
-    <tr>
-        <td>База данных</td>
-        <td id="databaseInstalled"></td>
-    </tr>
-    <tr>
-        <td>Класс SqlLite3</td>
-        <td id="SqlLite3Loaded"></td>
-    </tr>
-</table>
-<hr>
-<button id="InstallButton">Установить</button>
+    <hr>
+        <h1>Инсталлятор сервера</h1>
+    <hr>
+    <table>
+        <tr>
+            <th>Компонент сервера</th>
+            <th>Статус</th>
+        </tr>
+        <tr>
+            <td>База данных</td>
+            <td id="databaseInstalled"></td>
+        </tr>
+        <tr>
+            <td>Класс SqlLite3</td>
+            <td id="SqlLite3Loaded"></td>
+        </tr>
+    </table>
+    <hr>
+    <button id="InstallButton">Установить</button>
 </body>
 </html>
