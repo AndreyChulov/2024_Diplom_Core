@@ -1,3 +1,10 @@
-<?php
+Установка только из CLI
 
-require "composer.phar";
+Необходим composer
+
+ & 'C:\Program Files\php-8.2.9-Win32-vs16-x64\php.exe' composer.phar require zircote/swagger-php
+
+При этом composer все равно смотрит в composer.json
+
+На Github грузить с папкой vendor, все либы устанавливать локально
+

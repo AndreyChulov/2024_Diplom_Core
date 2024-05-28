@@ -1,6 +1,6 @@
 <?php
 
-namespace API_Models\Server;
+namespace API_Models;
 
 use JsonSerializable;
 use OpenApi\Attributes as OA;
@@ -21,8 +21,13 @@ class BaseResponse implements JsonSerializable
 
     private int $_statusCode;
 
-    public function __construct(){
-        $this->_statusCode = 200;
+    public function __construct(bool $isWrongMethod){
+        if ($isWrongMethod) {
+            $this->setStatusCode(404);//страница не найдена, - неправильный метод запроса
+        } else {
+            $this->setStatusCode(200);
+        }
+
     }
 
     public function getStatusCode(): int

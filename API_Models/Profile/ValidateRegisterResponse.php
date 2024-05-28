@@ -2,60 +2,69 @@
 
 namespace API_Models\Profile;
 
-require_once dirname(__FILE__)."/../BaseResponse.php";
+$currentFolder = dirname(__FILE__);
+require_once "$currentFolder/../BaseResponse.php";
+require_once "$currentFolder/ValidateRegisterRequest.php";
 
 use API_Models\BaseResponse;
+use API_Models\Profile\ValidateRegisterRequest;
 use OpenApi\Attributes as OA;
 
 #[OA\Schema(
-    schema: "Register response schema",
+    schema: "Validate register response schema",
     properties: [
         new OA\Property(
-            property: "UserName",
+            property: "IsRequestOk",
             description: <<<DESCRIPTION
-                Имя пользователя 
-                (не используется при авторзации, используется для отображения во время игры)
+                Флаг, показывающий что запрос сформирован верно
                 DESCRIPTION,
-            type: "string",
-            example: "Василий Пупкин"
+            type: "bool",
+            example: true
         ),
         new OA\Property(
-            property: "Login",
+            property: "RequestException",
             description: <<<DESCRIPTION
-                Логин пользователя 
-                (используется только при авторзации, 
-                    не может внутри себя содержать пробелы)
+                Описание ошибки запроса (что неверно установлено)
                 DESCRIPTION,
             type: "string",
-            example: "Vasa"
-        ),
-        new OA\Property(
-            property: "PasswordHash",
-            description: <<<DESCRIPTION
-                Хэш пароля пользователя 
-                (Хэш пароля должен быть захеширован алгоритмом MD5, 
-                    а затем из полученной строки вырезан последний символ)
-                (В примере используется хеш пароля "123456")
-                (Для проверки можно использовать сайт https://10015.io/tools/md5-encrypt-decrypt)
-                DESCRIPTION,
-            type: "string",
-            example: "Эe10adc3949ba59abbe56e057f20f883"
-        ),
-        new OA\Property(
-            property: "Telephone",
-            description: <<<DESCRIPTION
-                Номер телефона пользователя в международном формате
-                (должен начинаться со знака + и не содержать пробелов) 
-                DESCRIPTION,
-            type: "string",
-            example: "+71234567890"
+            example: "Поле Telephone задано неверно"
         )
     ]
 )]
-class RegisterResponse extends BaseResponse
+class ValidateRegisterResponse extends BaseResponse
 {
-    public function __construct(bool $isWrongMethod)
+    private bool $_isRequestOk;
+    private string $_requestException;
+
+    public function getIsRequestOk(): bool
+    {
+        return $this->_isRequestOk;
+    }
+
+    public function getRequestException(): string
+    {
+        return $this->_requestException;
+    }
+
+    public function __construct(bool $isWrongMethod, ValidateRegisterRequest $request)
     {
         parent::__construct($isWrongMethod);
+
+        if ($request->IsRequestCorrect()){
+            $this->_isRequestOk = true;
+            $this->_requestException = "";
+
+            return;
+        }
+
+        $this->_isRequestOk = false;
+
+        if (!$request->IsTelephoneCorrect()){
+            $this->_requestException = "Поле Telephone задано неверно";
+        } elseif (!$request->IsLoginCorrect()){
+            $this->_requestException = "Поле Login задано неверно";
+        } elseif (!$request->IsPasswordHashCorrect()){
+            $this->_requestException = "Поле PasswordHash задано неверно";
+        }
     }
 }

@@ -1,0 +1,8 @@
+//$method = $_SERVER['REQUEST_METHOD'];
+//var_dump($method); // только GET и POST
+//$_SERVER['REQUEST_URI']; // /API/server/Install?XDEBUG_SESSION_START=12984
+//$_SERVER['REQUEST_METHOD']; // GET
+//$_SERVER['PATH_INFO']; // /server/Install
+//$_SERVER['argv']; // array[1] {"XDEBUG_SESSION_START=12984"}
+//$_SERVER['argc']; // 1
+//$_REQUEST['XDEBUG_SESSION_START'] // 12984

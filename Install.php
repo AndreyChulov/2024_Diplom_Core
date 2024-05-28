@@ -24,6 +24,10 @@
             <td>Класс SqlLite3</td>
             <td id="SqlLite3Loaded"></td>
         </tr>
+        <tr>
+            <td>Генерация документации swager</td>
+            <td id="OpenApiLoaded"><?php echo function_exists("\OpenApi\scan") ? "Включено" : "Выключено" ?></td>
+        </tr>
     </table>
     <hr>
     <button id="InstallButton">Установить</button>

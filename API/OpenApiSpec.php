@@ -1,11 +1,10 @@
 <?php
-require_once dirname(__FILE__).'/../Classes/DatabaseInitializer.php';
 
-use Classes\DatabaseInitializer;
+use OpenApi\Attributes as OA;
 
-$databaseInitializer = new DatabaseInitializer();
-$databaseInitializer->InitDatabase();
-?>
-{
-    "status":"done"
-}
+#[OA\Info(
+    version: '0.1',
+    description: 'Это API позволяет манипулировать сервером игры "Шашки"',
+    title: 'Server core API'
+)]
+class OpenApi {}

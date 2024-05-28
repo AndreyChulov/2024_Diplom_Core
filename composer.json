@@ -1,15 +1,15 @@
 {
-  "name": "vendor_name/2024_Diplom_Core",
+  "name": "nikita/2024_diplom_core",
   "description": "description",
   "minimum-stability": "stable",
   "license": "proprietary",
   "authors": [
     {
-      "name": "Andrey",
+      "name": "Nikita",
       "email": "email@example.com"
     }
   ],
   "require": {
-    
+    "zircote/swagger-php": "^4.9"
   }
 }
