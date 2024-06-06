@@ -4,7 +4,7 @@ require_once dirname(__FILE__).'/../API_Models/BaseResponse.php';
 
 use API_Models\BaseResponse;
 
-$path = strtolower($_SERVER['PATH_INFO']);
+$path = $_SERVER['PATH_INFO'];
 $splitPath = explode("/", $path);
 $controllerName = "\\".ucfirst($splitPath[1])."Controller";
 $apiFunction = ucfirst($splitPath[2]);
@@ -13,8 +13,8 @@ $requestModelName = "\\".$modelsNamespace."\\".ucfirst($splitPath[1])."\\".ucfir
 $responseModelName = "\\".$modelsNamespace."\\".ucfirst($splitPath[1])."\\".ucfirst($splitPath[2])."Response";
 $apiFolder = dirname(__FILE__);
 $controllerFileName = $apiFolder."/".ucfirst($splitPath[1])."Controller.php";
-$requestModelFileName = "$apiFolder/../$requestModelName.php";
-$responseModelFileName = "$apiFolder/../$responseModelName.php";
+$requestModelFileName = "$apiFolder/..".str_replace("\\", "/", $requestModelName).".php";
+$responseModelFileName = "$apiFolder/..".str_replace("\\", "/", $responseModelName).".php";
 
 require_once $controllerFileName;
 require_once $requestModelFileName;

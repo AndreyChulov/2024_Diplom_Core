@@ -39,7 +39,7 @@ use OpenApi\Attributes as OA;
                 (Для проверки можно использовать сайт https://10015.io/tools/md5-encrypt-decrypt)
                 DESCRIPTION,
             type: "string",
-            example: "Эe10adc3949ba59abbe56e057f20f883"
+            example: "e10adc3949ba59abbe56e057f20f883"
         ),
         new OA\Property(
             property: "Telephone",
@@ -104,7 +104,7 @@ class RegisterRequest extends BaseRequest
     public function IsPasswordHashCorrect():bool{
         if (!isset($this->_isPasswordHashCorrect)){
             $this->_isPasswordHashCorrect =
-                strlen($this->_passwordHash) == 33 && !str_contains($this->_passwordHash, " ");
+                strlen($this->_passwordHash) == 31 && !str_contains($this->_passwordHash, " ");
         }
 
         return $this->_isPasswordHashCorrect;
@@ -112,8 +112,7 @@ class RegisterRequest extends BaseRequest
 
     public function IsTelephoneCorrect():bool{
         if (!isset($this->_isTelephoneCorrect)){
-            $this->_isTelephoneCorrect =
-                str_starts_with($this->_telephone, "+") && !str_contains($this->_telephone, " ");
+            $this->_isTelephoneCorrect = true;
         }
 
         return $this->_isTelephoneCorrect;

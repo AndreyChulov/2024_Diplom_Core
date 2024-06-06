@@ -26,7 +26,7 @@ class DatabaseInitializer
     {
         $databaseFilePath = $this->_globals->getSettings()->DATABASE_FILE;
         if (file_exists($databaseFilePath)) {
-            unlink($databaseFilePath);
+            unlink(realpath($databaseFilePath));
         }
     }
 
@@ -43,6 +43,7 @@ class DatabaseInitializer
     {
         $this->CreateProfilesTable();
         $this->CreateCredentialsTable();
+        $this->CreateAuthorizeKeysTable();
     }
 
     private function CreateCredentialsTable(): void
@@ -68,6 +69,22 @@ class DatabaseInitializer
                 Name TEXT,
                 Login TEXT,
                 Phone TEXT
+            )
+        QUERY;
+        $database->exec($query);
+        $database->close();
+    }
+
+    private function CreateAuthorizeKeysTable(): void
+    {
+        $database = new SQLite3($this->_globals->getSettings()->DATABASE_FILE);
+        $query = <<<QUERY
+            CREATE TABLE IF NOT EXISTS AuthorizeKeys (
+                Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                ProfileId INTEGER NOT NULL REFERENCES Profiles(Id),
+                Key TEXT,
+                Created TIME,
+                ValidUntil TIME
             )
         QUERY;
         $database->exec($query);

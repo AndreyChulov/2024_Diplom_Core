@@ -25,24 +25,12 @@ class RegisterResponse extends BaseResponse
 {
     private string $_message;
 
-    public function __construct(
-        bool $isWrongMethod, bool $isBadRequest = false, bool $isLoginAlreadyExists = false)
+    public function __construct(int $statusCode, string $message)
     {
-        parent::__construct($isWrongMethod);
+        parent::__construct(false);
 
-        if ($isBadRequest){
-            parent::setStatusCode(400);
-
-            return;
-        }
-
-        if ($isLoginAlreadyExists){
-            parent::setStatusCode(409);
-
-            return;
-        }
-
-        $this->_message = "Регистрация прошла успешно";
+        parent::setStatusCode($statusCode);
+        $this->_message = $message;
     }
 
     public function getMessage(): string
