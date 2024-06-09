@@ -2,8 +2,16 @@
 
 namespace Classes;
 
-require_once dirname(__FILE__).'/../Errors/DatabaseError.php';
+$currentFolder = dirname(__FILE__);
 
+require_once "$currentFolder/../Errors/DatabaseError.php";
+require_once "$currentFolder/../DataModels/ProfileDataModel.php";
+require_once "$currentFolder/../DataModels/GameInfoDataModel.php";
+require_once "$currentFolder/../Classes/Strings.php";
+
+use DataModels\ProfileDataModel;
+use DataModels\GameInfoDataModel;
+use Classes\Strings;
 use \Errors\DatabaseError;
 use \SQLite3;
 
@@ -153,6 +161,133 @@ class Database
         if ($result === false){
             throw new DatabaseError($this->_sqlite,
                 "[RemoveAuthorizeKeys] Unexpected sqLite3 answer");
+        }
+    }
+
+    public function GetProfileInfo(string $login):ProfileDataModel
+    {
+        $query = <<<QUERY
+            SELECT *
+            FROM Profiles
+            WHERE Login = '$login'   
+        QUERY;
+
+        $result = $this->_sqlite->querySingle($query, true);
+
+        if ($result === false){
+            throw new DatabaseError($this->_sqlite,
+                "[RemoveAuthorizeKeys] Unexpected sqLite3 answer");
+        }
+
+        return new ProfileDataModel($result['Name'], $result['Login'], $result['Phone']);
+    }
+
+    public function CreateGame(string $login, string $gameKey, string $board):void
+    {
+        $status = Strings::$GAME_STATUS_WAIT_FOR_PLAYER;
+        $query = <<<QUERY
+            INSERT INTO Games(WhitePlayerProfileId, GameKey, Status, Board, Created)
+            SELECT 
+                Id AS WhitePlayerProfileId, 
+                '$gameKey' AS GameKey,
+                '$status' AS Status, 
+                '$board' AS Board, 
+                DATETIME('NOW') AS Created
+            FROM Profiles
+            WHERE Login = '$login'   
+        QUERY;
+
+        $result = $this->_sqlite->querySingle($query, true);
+
+        if ($result === false){
+            throw new DatabaseError($this->_sqlite,
+                "[RemoveAuthorizeKeys] Unexpected sqLite3 answer");
+        }
+    }
+
+    public function IsGameExist(string $login):bool
+    {
+        $blackWinStatus = Strings::$GAME_STATUS_BLACK_WIN;
+        $whiteWinStatus = Strings::$GAME_STATUS_WHITE_WIN;
+        $finishedByAdminStatus = Strings::$GAME_STATUS_FINISHED_BY_ADMIN;
+
+        $query = <<<QUERY
+            SELECT count(*)
+            FROM Games AS g, Profiles AS p
+            WHERE p.Login = '$login' AND 
+                  p.Id IN (g.WhitePlayerProfileId, g.BlackPlayerProfileId) AND
+                  g.Status NOT IN ('$blackWinStatus', '$whiteWinStatus', '$finishedByAdminStatus');
+        QUERY;
+
+        $result = $this->_sqlite->querySingle($query);
+
+        if ($result === false){
+            throw new DatabaseError($this->_sqlite,
+                "[RemoveAuthorizeKeys] Unexpected sqLite3 answer");
+        }
+
+        return $result > 0;
+    }
+
+    public function GetGameInfo(string $login):GameInfoDataModel
+    {
+        $blackWinStatus = Strings::$GAME_STATUS_BLACK_WIN;
+        $whiteWinStatus = Strings::$GAME_STATUS_WHITE_WIN;
+        $finishedByAdminStatus = Strings::$GAME_STATUS_FINISHED_BY_ADMIN;
+
+        $query = <<<QUERY
+            SELECT 
+                pw.Login AS WhitePlayerLogin, 
+                pb.Login AS BlackPlayerLogin, 
+                g.GameKey AS GameKey, 
+                g.Status AS GameStatus, 
+                g.Board AS Board, 
+                g.Created AS GameCreated
+            FROM Games AS g, Profiles AS p, Profiles AS pw, Profiles AS pb
+            WHERE p.Login = '$login' AND 
+                  p.Id IN (g.WhitePlayerProfileId, g.BlackPlayerProfileId) AND
+                  g.Status NOT IN ('$blackWinStatus', '$whiteWinStatus', '$finishedByAdminStatus') AND
+                  pw.Id = g.WhitePlayerProfileId AND 
+                  (pb.Id = g.BlackPlayerProfileId OR g.BlackPlayerProfileId IS NULL);
+        QUERY;
+
+        $result = $this->_sqlite->querySingle($query, true);
+
+        if ($result === false){
+            throw new DatabaseError($this->_sqlite,
+                "[RemoveAuthorizeKeys] Unexpected sqLite3 answer");
+        }
+
+        return new GameInfoDataModel(
+            $result['WhitePlayerLogin'],
+            $result['GameStatus'] === Strings::$GAME_STATUS_WAIT_FOR_PLAYER ?
+                "" : $result['BlackPlayerLogin'],
+            $result['GameKey'],
+            $result['GameStatus'],
+            $result['Board'],
+            $result['GameCreated'],
+        );
+    }
+
+    public function ForceFinishGames(string $login):void
+    {
+        $blackWinStatus = Strings::$GAME_STATUS_BLACK_WIN;
+        $whiteWinStatus = Strings::$GAME_STATUS_WHITE_WIN;
+        $finishedByAdminStatus = Strings::$GAME_STATUS_FINISHED_BY_ADMIN;
+
+        $query = <<<QUERY
+            UPDATE Games
+            SET Status = '$finishedByAdminStatus'
+            FROM Profiles AS p
+            WHERE p.Login = '$login' AND p.Id IN (WhitePlayerProfileId, BlackPlayerProfileId) AND
+                  Status NOT IN ('$blackWinStatus', '$whiteWinStatus', '$finishedByAdminStatus');
+        QUERY;
+
+        $result = $this->_sqlite->exec($query);
+
+        if ($result === false){
+            throw new DatabaseError($this->_sqlite,
+                "[ForceFinishGames] Unexpected sqLite3 answer");
         }
     }
 }

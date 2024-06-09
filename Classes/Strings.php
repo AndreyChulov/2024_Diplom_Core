@@ -12,6 +12,15 @@ class Strings
     public static string $PASSWORD_WRONG = "Пароль неверен";
     public static string $KEY_WRONG = "Ключ не подходит";
     public static string $REGISTRATION_SUCCESSFUL = "Регистрация прошла успешно";
+    public static string $AUTHORIZATION_SUCCESSFUL = "Авторизация прошла успешно";
     public static string $KEY_VALID = "Ключ активен";
     public static string $KEY_REMOVED = "Ключ удален";
+    public static string $GAME_FORCE_FINISHED = "Игра принудительно завершена";
+    public static string $GAME_STARTED = "Игра начата";
+    public static string $GAME_ALREADY_EXISTS = "Игра уже существует";
+    public static string $GAME_STATUS_WAIT_FOR_PLAYER = "Ожидание второго игрока";
+    public static string $GAME_STATUS_BLACK_WIN = "Черные выиграли";
+    public static string $GAME_STATUS_WHITE_WIN = "Белые выиграли";
+    public static string $GAME_STATUS_FINISHED_BY_ADMIN = "Завершена администратором";
+    public static string $GAME_INFO_RETRIEVED = "Данные игры получены";
 }

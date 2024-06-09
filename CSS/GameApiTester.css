@@ -1,0 +1,105 @@
+.gameInfo,
+.gameInfo>div>div{
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    justify-content: space-around;
+    align-items: center;
+}
+
+.gameInfo>div{
+    display: flex;
+    flex-direction: column;
+    flex-wrap: nowrap;
+    justify-content: center;
+    align-items: stretch;
+}
+
+.gameInfo>div>div>*{
+    padding: 2vmin;
+}
+
+.gameInfo input{
+    width: 10vmin;
+}
+
+#Board>div>div{
+    width: 4vmin;
+    height: 4vmin;
+}
+
+#Board>div:nth-child(2n)>div:nth-child(2n),
+#Board>div:nth-child(2n-1)>div:nth-child(2n-1){
+    background-color: black;
+}
+
+#Board>div:nth-child(2n-1)>div:nth-child(2n),
+#Board>div:nth-child(2n)>div:nth-child(2n-1){
+    background-color: white;
+}
+
+#Board>div{
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    justify-content: space-around;
+    align-items: center;
+}
+
+#Board{
+    display: flex;
+    flex-direction: column-reverse;
+    flex-wrap: nowrap;
+    justify-content: space-around;
+    align-items: center;
+    padding: 2vmin;
+}
+
+.W,
+.B,
+.WR,
+.BR{
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+}
+
+.W>div,
+.B>div{
+    width: 75%;
+    height: 75%;
+    border-radius: 50%;
+    top: 12.5%;
+    left: 12.5%;
+    position: relative;
+}
+
+.WR>div,
+.BR>div{
+    width: 25%;
+    height: 25%;
+    border-radius: 50%;
+    top: 37.5%;
+    left: 37.5%;
+    position: relative;
+}
+
+.W,
+.WR{
+    background-color: #a89494;
+}
+
+.W>div,
+.WR>div{
+    background-color: #6e5555;
+}
+
+.B,
+.BR{
+    background-color: #9a1d1d;
+}
+
+.B>div,
+.BR>div{
+    background-color: #620707;
+}

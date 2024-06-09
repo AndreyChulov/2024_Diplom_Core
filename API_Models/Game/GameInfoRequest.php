@@ -8,7 +8,7 @@ use API_Models\BaseRequest;
 use OpenApi\Attributes as OA;
 
 #[OA\QueryParameter(
-    parameter: "StatusRequest_LoginParameter",
+    parameter: "GameInfo_LoginParameter",
     name: "Login",
     description: <<<DESCRIPTION
                 Логин пользователя
@@ -17,15 +17,15 @@ use OpenApi\Attributes as OA;
     example: "Vasa"
 )]
 #[OA\QueryParameter(
-    parameter: "StatusRequest_KeyParameter",
+    parameter: "GameInfo_KeyParameter",
     name: "Key",
     description: <<<DESCRIPTION
-                Ключ авторизации для проверки
+                Ключ авторизации
                 DESCRIPTION,
     required: true,
     example: "4472a5cc389cb36065b5a336"
 )]
-class StatusRequest extends BaseRequest
+class GameInfoRequest extends BaseRequest
 {
     private string $_login;
 

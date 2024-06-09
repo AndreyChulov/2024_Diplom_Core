@@ -17,7 +17,7 @@ use OpenApi\Attributes as OA;
                 (если получен ответ, сообщение всегда говорит об успешной авторизации)
                 DESCRIPTION,
             type: "string",
-            example: "Регистрация прошла успешно"
+            example: "Авторизация прошла успешно"
         ),
         new OA\Property(
             property: "AuthorizeKey",
@@ -35,17 +35,24 @@ use OpenApi\Attributes as OA;
 class LoginResponse extends BaseResponse
 {
     private string $_message;
+    private string $_authorizeKey;
+
+    public function getAuthorizeKey(): string
+    {
+        return $this->_authorizeKey;
+    }
 
     public function getMessage(): string
     {
         return $this->_message;
     }
 
-    public function __construct(int $statusCode, string $message)
+    public function __construct(int $statusCode, string $message, string $authorizeKey = "")
     {
         parent::__construct(false);
         parent::setStatusCode($statusCode);
 
         $this->_message = $message;
+        $this->_authorizeKey  = $authorizeKey;
     }
 }

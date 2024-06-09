@@ -15,6 +15,15 @@ require_once "$currentFolder/../API_Models/Profile/GetAuthorizeKeyStatusRequest.
 require_once "$currentFolder/../API_Models/Profile/GetAuthorizeKeyStatusResponse.php";
 require_once "$currentFolder/../API_Models/Profile/LogoutRequest.php";
 require_once "$currentFolder/../API_Models/Profile/LogoutResponse.php";
+require_once "$currentFolder/../API_Models/Profile/ProfileRequest.php";
+require_once "$currentFolder/../API_Models/Profile/ProfileResponse.php";
+
+$currentFolder = dirname(__FILE__);
+
+require_once "$currentFolder/../API_Models/Profile/GetNameRequest.php";
+require_once "$currentFolder/../API_Models/Profile/GetNameResponse.php";
+
+$currentFolder = dirname(__FILE__);
 
 
 use OpenApi\Attributes as OA;
@@ -28,6 +37,10 @@ use API_Models\Profile\GetAuthorizeKeyStatusRequest;
 use API_Models\Profile\GetAuthorizeKeyStatusResponse;
 use API_Models\Profile\LogoutRequest;
 use API_Models\Profile\LogoutResponse;
+use API_Models\Profile\ProfileRequest;
+use API_Models\Profile\ProfileResponse;
+use API_Models\Profile\GetNameRequest;
+use API_Models\Profile\GetNameResponse;
 
 $currentFolder = dirname(__FILE__); // swagger-php почему то теряет старое корректное значение переменной
 
@@ -214,7 +227,7 @@ class ProfileController
         $authorizeKey = dechex(rand()).dechex(rand()).dechex(rand());
         $database->AddAuthorizeKey($login, $authorizeKey, $globals->getSettings()->AUTHORIZATION_KEY_VALID_HOURS);
 
-        return new LoginResponse(200, $authorizeKey);
+        return new LoginResponse(200, Strings::$AUTHORIZATION_SUCCESSFUL, $authorizeKey);
     }
 
     #[OA\Get(
@@ -350,4 +363,128 @@ class ProfileController
 
         return new LogoutResponse(200, Strings::$KEY_REMOVED);
     }
+
+    #[OA\Get(
+        path: '/api/profile/profile',
+        summary: "Получение данных об авторизованном пользователе",
+        tags: ['Profile'],
+        parameters: [
+            new OA\QueryParameter(
+                ref: "#/components/parameters/Profile_LoginParameter"
+            ),
+            new OA\QueryParameter(
+                ref: "#/components/parameters/Profile_KeyParameter"
+            )
+        ],
+        responses: [
+            new OA\Response(
+                response:"404",
+                description: "Wrong request method"
+            ),
+            new OA\Response(
+                response:"406",
+                description: "Not Acceptable - Неверный/несуществующий логин"
+            ),
+            new OA\Response(
+                response:"401",
+                description: "Unauthorized - Неверный/несуществующий Key"
+            ),
+            new OA\Response(
+                response:"400",
+                description: <<<DESCRIPTION
+                        Bad request - неправильно сформирован запрос
+                    DESCRIPTION
+            ),
+            new OA\Response(
+                response:"200",
+                description:"OK",
+                content: new OA\JsonContent(
+                    ref: \API_Models\Profile\ProfileResponse::class
+                )
+            )
+        ],
+    )]
+    public function Profile(ProfileRequest $request): ProfileResponse{
+        if ($request->getIsPostRequest()){
+            return new ProfileResponse(404, null);
+        }
+
+        if (!$request->IsRequestValid()){
+            return new ProfileResponse(400, null);
+        }
+
+        $globals = new Globals();
+        $login = $request->getLogin();
+        $database = $globals->getDatabase();
+
+        if (!$database->IsProfileExists($login)){
+            return new ProfileResponse(406, null);
+        }
+
+        $key = $request->getKey();
+
+        if (!$database->ValidateAuthorizationKey($login, $key)){
+            return new ProfileResponse(401, null);
+        }
+
+        $profileInfo = $database->GetProfileInfo($login);
+
+        return new ProfileResponse(200, $profileInfo);
+    }
+
+    #[OA\Get(
+        path: '/api/profile/getName',
+        summary: "Получение данных об авторизованном пользователе",
+        tags: ['Profile'],
+        parameters: [
+            new OA\QueryParameter(
+                ref: "#/components/parameters/GetName_LoginParameter"
+            )
+        ],
+        responses: [
+            new OA\Response(
+                response:"404",
+                description: "Wrong request method"
+            ),
+            new OA\Response(
+                response:"406",
+                description: "Not Acceptable - Неверный/несуществующий логин"
+            ),
+            new OA\Response(
+                response:"400",
+                description: <<<DESCRIPTION
+                        Bad request - неправильно сформирован запрос
+                    DESCRIPTION
+            ),
+            new OA\Response(
+                response:"200",
+                description:"OK",
+                content: new OA\JsonContent(
+                    ref: \API_Models\Profile\GetNameResponse::class
+                )
+            )
+        ],
+    )]
+    public function GetName(GetNameRequest $request): GetNameResponse{
+        if ($request->getIsPostRequest()){
+            return new GetNameResponse(404, null);
+        }
+
+        if (!$request->IsRequestValid()){
+            return new GetNameResponse(400, null);
+        }
+
+        $globals = new Globals();
+        $login = $request->getLogin();
+        $database = $globals->getDatabase();
+
+        if (!$database->IsProfileExists($login)){
+            return new GetNameResponse(406, null);
+        }
+
+        $profileInfo = $database->GetProfileInfo($login);
+
+        return new GetNameResponse(200, $profileInfo);
+    }
+
 }

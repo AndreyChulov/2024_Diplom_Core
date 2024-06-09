@@ -12,7 +12,7 @@ use DataModels\ProfileDataModel;
 use OpenApi\Attributes as OA;
 
 #[OA\Schema(
-    schema: "Profile response schema",
+    schema: "GetName response schema",
     properties: [
         new OA\Property(
             property: "Name",
@@ -29,22 +29,13 @@ use OpenApi\Attributes as OA;
                 DESCRIPTION,
             type: "string",
             example: "Vasa"
-        ),
-        new OA\Property(
-            property: "Phone",
-            description: <<<DESCRIPTION
-                Номер телефона пользователя
-                DESCRIPTION,
-            type: "string",
-            example: "+71234567890"
         )
     ]
 )]
-class ProfileResponse extends BaseResponse
+class GetNameResponse extends BaseResponse
 {
     private string $_name;
     private string $_login;
-    private string $_phone;
 
     public function getName(): string
     {
@@ -54,11 +45,6 @@ class ProfileResponse extends BaseResponse
     public function getLogin(): string
     {
         return $this->_login;
-    }
-
-    public function getPhone(): string
-    {
-        return $this->_phone;
     }
 
     public function __construct(int $statusCode, ProfileDataModel|null $profileInfo)
@@ -72,7 +58,6 @@ class ProfileResponse extends BaseResponse
         }
 
         $this->_login = $profileInfo->getLogin();
-        $this->_phone = $profileInfo->getPhone();
         $this->_name = $profileInfo->getName();
     }
 }

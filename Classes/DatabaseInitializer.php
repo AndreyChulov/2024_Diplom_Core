@@ -44,6 +44,7 @@ class DatabaseInitializer
         $this->CreateProfilesTable();
         $this->CreateCredentialsTable();
         $this->CreateAuthorizeKeysTable();
+        $this->CreateGamesTable();
     }
 
     private function CreateCredentialsTable(): void
@@ -85,6 +86,24 @@ class DatabaseInitializer
                 Key TEXT,
                 Created TIME,
                 ValidUntil TIME
+            )
+        QUERY;
+        $database->exec($query);
+        $database->close();
+    }
+
+    private function CreateGamesTable(): void
+    {
+        $database = new SQLite3($this->_globals->getSettings()->DATABASE_FILE);
+        $query = <<<QUERY
+            CREATE TABLE IF NOT EXISTS Games (
+                Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                WhitePlayerProfileId INTEGER NOT NULL REFERENCES Profiles(Id),
+                BlackPlayerProfileId INTEGER NULL REFERENCES Profiles(Id),
+                GameKey TEXT,
+                Status TEXT,
+                Board TEXT,
+                Created TIME
             )
         QUERY;
         $database->exec($query);

@@ -2,11 +2,8 @@
 
 namespace Classes\Game;
 
-enum BoardRowInitializeType
+enum BoardInitializeType
 {
-    case FIRST_BLACK;
-    case SECOND_BLACK;
-    case EMPTY;
-    case FIRST_WHITE;
-    case SECOND_WHITE;
+    case GAME_START;
+    case EMPTY_BOARD;
 }
