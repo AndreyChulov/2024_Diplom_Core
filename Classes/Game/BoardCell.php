@@ -53,4 +53,24 @@ class BoardCell implements JsonSerializable
     {
         return $this->_checker;
     }
+
+    public function LoadBoardCell(?string $jsonObject):void{
+        if (is_null($jsonObject)){
+            $this->_checker = null;
+            return;
+        }
+
+        switch ($jsonObject[0]){
+            case "W":
+                $this->_checker = new Checker(true);
+                break;
+            case "B":
+                $this->_checker = new Checker(false);
+                break;
+        }
+
+        if (strlen($jsonObject) === 2){
+            $this->_checker->setIsRoyal(true);
+        }
+    }
 }

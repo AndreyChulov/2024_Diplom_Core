@@ -91,7 +91,8 @@ class Database
         $query = <<<QUERY
             SELECT count(*)
             FROM Profiles AS p, AuthorizeKeys AS ak
-            WHERE p.Login = '$login' AND ak.Key = '$key' AND p.Id = ak.ProfileId;
+            WHERE p.Login = '$login' AND ak.Key = '$key' AND p.Id = ak.ProfileId AND
+                  STRFTIME('%s', ak.ValidUntil) - STRFTIME('%s', 'NOW') > 0;
         QUERY;
 
         $result = $this->_sqlite->query($query);
@@ -176,7 +177,7 @@ class Database
 
         if ($result === false){
             throw new DatabaseError($this->_sqlite,
-                "[RemoveAuthorizeKeys] Unexpected sqLite3 answer");
+                "[GetProfileInfo] Unexpected sqLite3 answer");
         }
 
         return new ProfileDataModel($result['Name'], $result['Login'], $result['Phone']);
@@ -185,6 +186,7 @@ class Database
     public function CreateGame(string $login, string $gameKey, string $board):void
     {
         $status = Strings::$GAME_STATUS_WAIT_FOR_PLAYER;
+
         $query = <<<QUERY
             INSERT INTO Games(WhitePlayerProfileId, GameKey, Status, Board, Created)
             SELECT 
@@ -197,11 +199,37 @@ class Database
             WHERE Login = '$login'   
         QUERY;
 
-        $result = $this->_sqlite->querySingle($query, true);
+        $result = $this->_sqlite->exec($query);
 
         if ($result === false){
             throw new DatabaseError($this->_sqlite,
-                "[RemoveAuthorizeKeys] Unexpected sqLite3 answer");
+                "[CreateGame] Unexpected sqLite3 answer");
+        }
+    }
+
+    public function ConnectToGame(string $loginToConnect):void
+    {
+        $newStatus = Strings::$GAME_STATUS_WHITE_TURN;
+        $oldStatus = Strings::$GAME_STATUS_WAIT_FOR_PLAYER;
+
+        $query = <<<QUERY
+            UPDATE Games AS gu
+            SET BlackPlayerProfileId = p.Id,
+                Status = '$newStatus'
+            FROM Profiles AS p
+            WHERE gu.Id IN (
+                SELECT g.Id
+                FROM Games AS g
+                WHERE g.Status = '$oldStatus' 
+                LIMIT 1
+            ) AND p.Login = '$loginToConnect'
+        QUERY;
+
+        $result = $this->_sqlite->exec($query);
+
+        if ($result === false){
+            throw new DatabaseError($this->_sqlite,
+                "[ConnectToGame] Unexpected sqLite3 answer");
         }
     }
 
@@ -210,20 +238,115 @@ class Database
         $blackWinStatus = Strings::$GAME_STATUS_BLACK_WIN;
         $whiteWinStatus = Strings::$GAME_STATUS_WHITE_WIN;
         $finishedByAdminStatus = Strings::$GAME_STATUS_FINISHED_BY_ADMIN;
+        $blackSurrender = Strings::$GAME_STATUS_BLACK_SURRENDER;
+        $whiteSurrender = Strings::$GAME_STATUS_WHITE_SURRENDER;
 
         $query = <<<QUERY
             SELECT count(*)
             FROM Games AS g, Profiles AS p
             WHERE p.Login = '$login' AND 
                   p.Id IN (g.WhitePlayerProfileId, g.BlackPlayerProfileId) AND
-                  g.Status NOT IN ('$blackWinStatus', '$whiteWinStatus', '$finishedByAdminStatus');
+                  g.Status NOT IN (
+                        '$blackWinStatus', 
+                        '$whiteWinStatus', 
+                        '$finishedByAdminStatus',
+                        '$blackSurrender',
+                        '$whiteSurrender'
+                    );
         QUERY;
 
         $result = $this->_sqlite->querySingle($query);
 
         if ($result === false){
             throw new DatabaseError($this->_sqlite,
-                "[RemoveAuthorizeKeys] Unexpected sqLite3 answer");
+                "[IsGameExist] Unexpected sqLite3 answer");
+        }
+
+        return $result > 0;
+    }
+
+    public function IsExactGameExist(string $login, string $gameKey):bool
+    {
+        $blackWinStatus = Strings::$GAME_STATUS_BLACK_WIN;
+        $whiteWinStatus = Strings::$GAME_STATUS_WHITE_WIN;
+        $finishedByAdminStatus = Strings::$GAME_STATUS_FINISHED_BY_ADMIN;
+        $blackSurrender = Strings::$GAME_STATUS_BLACK_SURRENDER;
+        $whiteSurrender = Strings::$GAME_STATUS_WHITE_SURRENDER;
+
+        $query = <<<QUERY
+            SELECT count(*)
+            FROM Games AS g, Profiles AS p
+            WHERE p.Login = '$login' AND 
+                  p.Id IN (g.WhitePlayerProfileId, g.BlackPlayerProfileId) AND
+                  g.Status NOT IN (
+                        '$blackWinStatus', 
+                        '$whiteWinStatus', 
+                        '$finishedByAdminStatus',
+                        '$blackSurrender',
+                        '$whiteSurrender'
+                    ) AND
+                  g.GameKey ='$gameKey';
+        QUERY;
+
+        $result = $this->_sqlite->querySingle($query);
+
+        if ($result === false){
+            throw new DatabaseError($this->_sqlite,
+                "[IsExactGameExist] Unexpected sqLite3 answer");
+        }
+
+        return $result > 0;
+    }
+
+    public function IsWaitingForPlayerGameExist(string $excludeLogin):bool
+    {
+        $waitForPlayerStatus = Strings::$GAME_STATUS_WAIT_FOR_PLAYER;
+
+        $query = <<<QUERY
+            SELECT count(*)
+            FROM Games AS g, Profiles AS p
+            WHERE p.Login = '$excludeLogin' AND 
+                  p.Id <> g.WhitePlayerProfileId AND
+                  g.Status = '$waitForPlayerStatus';
+        QUERY;
+
+        $result = $this->_sqlite->querySingle($query);
+
+        if ($result === false){
+            throw new DatabaseError($this->_sqlite,
+                "[IsWaitingForPlayerGameExist] Unexpected sqLite3 answer");
+        }
+
+        return $result > 0;
+    }
+
+    public function IsBlackPlayer(string $login):bool
+    {
+        $blackWinStatus = Strings::$GAME_STATUS_BLACK_WIN;
+        $whiteWinStatus = Strings::$GAME_STATUS_WHITE_WIN;
+        $finishedByAdminStatus = Strings::$GAME_STATUS_FINISHED_BY_ADMIN;
+        $blackSurrender = Strings::$GAME_STATUS_BLACK_SURRENDER;
+        $whiteSurrender = Strings::$GAME_STATUS_WHITE_SURRENDER;
+
+        $query = <<<QUERY
+            SELECT count(*)
+            FROM Games AS g, Profiles AS p
+            WHERE p.Login = '$login' AND 
+                  p.Id = g.BlackPlayerProfileId AND
+                  g.Status NOT IN (
+                        '$blackWinStatus', 
+                        '$whiteWinStatus', 
+                        '$finishedByAdminStatus',
+                        '$blackSurrender',
+                        '$whiteSurrender'
+                    );
+        QUERY;
+
+        $result = $this->_sqlite->querySingle($query);
+
+        if ($result === false){
+            throw new DatabaseError($this->_sqlite,
+                "[IsBlackPlayer] Unexpected sqLite3 answer");
         }
 
         return $result > 0;
@@ -234,6 +357,8 @@ class Database
         $blackWinStatus = Strings::$GAME_STATUS_BLACK_WIN;
         $whiteWinStatus = Strings::$GAME_STATUS_WHITE_WIN;
         $finishedByAdminStatus = Strings::$GAME_STATUS_FINISHED_BY_ADMIN;
+        $blackSurrender = Strings::$GAME_STATUS_BLACK_SURRENDER;
+        $whiteSurrender = Strings::$GAME_STATUS_WHITE_SURRENDER;
 
         $query = <<<QUERY
             SELECT 
@@ -246,7 +371,13 @@ class Database
             FROM Games AS g, Profiles AS p, Profiles AS pw, Profiles AS pb
             WHERE p.Login = '$login' AND 
                   p.Id IN (g.WhitePlayerProfileId, g.BlackPlayerProfileId) AND
-                  g.Status NOT IN ('$blackWinStatus', '$whiteWinStatus', '$finishedByAdminStatus') AND
+                  g.Status NOT IN (
+                        '$blackWinStatus', 
+                        '$whiteWinStatus', 
+                        '$finishedByAdminStatus',
+                        '$blackSurrender',
+                        '$whiteSurrender'
+                    ) AND
                   pw.Id = g.WhitePlayerProfileId AND 
                   (pb.Id = g.BlackPlayerProfileId OR g.BlackPlayerProfileId IS NULL);
         QUERY;
@@ -255,7 +386,7 @@ class Database
 
         if ($result === false){
             throw new DatabaseError($this->_sqlite,
-                "[RemoveAuthorizeKeys] Unexpected sqLite3 answer");
+                "[GetGameInfo] Unexpected sqLite3 answer");
         }
 
         return new GameInfoDataModel(
@@ -269,18 +400,189 @@ class Database
         );
     }
 
+    public function GetGameStatus(string $login):string
+    {
+        $blackWinStatus = Strings::$GAME_STATUS_BLACK_WIN;
+        $whiteWinStatus = Strings::$GAME_STATUS_WHITE_WIN;
+        $finishedByAdminStatus = Strings::$GAME_STATUS_FINISHED_BY_ADMIN;
+        $blackSurrender = Strings::$GAME_STATUS_BLACK_SURRENDER;
+        $whiteSurrender = Strings::$GAME_STATUS_WHITE_SURRENDER;
+
+        $query = <<<QUERY
+            SELECT 
+                g.Status AS GameStatus 
+            FROM Games AS g, Profiles AS p
+            WHERE p.Login = '$login' AND 
+                  p.Id IN (g.WhitePlayerProfileId, g.BlackPlayerProfileId) AND
+                  g.Status NOT IN (
+                        '$blackWinStatus', 
+                        '$whiteWinStatus', 
+                        '$finishedByAdminStatus',
+                        '$blackSurrender',
+                        '$whiteSurrender'
+                    )
+        QUERY;
+
+        $result = $this->_sqlite->querySingle($query);
+
+        if ($result === false){
+            throw new DatabaseError($this->_sqlite,
+                "[GetGameStatus] Unexpected sqLite3 answer");
+        }
+
+        return $result;
+    }
+
+    public function SetPlayerSurrender(string $login, string $gameKey, bool $isBlackPlayer):void
+    {
+        $blackWinStatus = Strings::$GAME_STATUS_BLACK_WIN;
+        $whiteWinStatus = Strings::$GAME_STATUS_WHITE_WIN;
+        $finishedByAdminStatus = Strings::$GAME_STATUS_FINISHED_BY_ADMIN;
+        $blackSurrender = Strings::$GAME_STATUS_BLACK_SURRENDER;
+        $whiteSurrender = Strings::$GAME_STATUS_WHITE_SURRENDER;
+
+        $newStatus = $isBlackPlayer ?
+            Strings::$GAME_STATUS_BLACK_SURRENDER : Strings::$GAME_STATUS_WHITE_SURRENDER;
+
+        $query = <<<QUERY
+            UPDATE Games AS g
+            SET Status = '$newStatus'
+            FROM Profiles AS p
+            WHERE p.Login = '$login' AND 
+                  g.GameKey = '$gameKey' AND
+                  p.Id IN (g.WhitePlayerProfileId, g.BlackPlayerProfileId) AND
+                  g.Status NOT IN (
+                        '$blackWinStatus', 
+                        '$whiteWinStatus', 
+                        '$finishedByAdminStatus',
+                        '$blackSurrender',
+                        '$whiteSurrender'
+                    )
+        QUERY;
+
+        $result = $this->_sqlite->exec($query);
+
+        if ($result === false){
+            throw new DatabaseError($this->_sqlite,
+                "[SetPlayerSurrender] Unexpected sqLite3 answer");
+        }
+    }
+
+    public function GetGameBoard(string $login):string
+    {
+        $blackWinStatus = Strings::$GAME_STATUS_BLACK_WIN;
+        $whiteWinStatus = Strings::$GAME_STATUS_WHITE_WIN;
+        $finishedByAdminStatus = Strings::$GAME_STATUS_FINISHED_BY_ADMIN;
+        $blackSurrender = Strings::$GAME_STATUS_BLACK_SURRENDER;
+        $whiteSurrender = Strings::$GAME_STATUS_WHITE_SURRENDER;
+
+        $query = <<<QUERY
+            SELECT 
+                g.Board AS Board 
+            FROM Games AS g, Profiles AS p
+            WHERE p.Login = '$login' AND 
+                  p.Id IN (g.WhitePlayerProfileId, g.BlackPlayerProfileId) AND
+                  g.Status NOT IN (
+                    '$blackWinStatus', 
+                    '$whiteWinStatus', 
+                    '$finishedByAdminStatus',
+                    '$blackSurrender',
+                    '$whiteSurrender'
+                )
+        QUERY;
+
+        $result = $this->_sqlite->querySingle($query);
+
+        if ($result === false){
+            throw new DatabaseError($this->_sqlite,
+                "[GetGameBoard] Unexpected sqLite3 answer");
+        }
+
+        return $result;
+    }
+
+    public function SetGameBoard(string $login, string $board):void
+    {
+        $blackWinStatus = Strings::$GAME_STATUS_BLACK_WIN;
+        $whiteWinStatus = Strings::$GAME_STATUS_WHITE_WIN;
+        $finishedByAdminStatus = Strings::$GAME_STATUS_FINISHED_BY_ADMIN;
+        $blackSurrender = Strings::$GAME_STATUS_BLACK_SURRENDER;
+        $whiteSurrender = Strings::$GAME_STATUS_WHITE_SURRENDER;
+
+        $query = <<<QUERY
+            UPDATE Games AS g
+            SET g.Board = '$board'
+            FROM Profiles AS p
+            WHERE p.Login = '$login' AND 
+                  p.Id IN (g.WhitePlayerProfileId, g.BlackPlayerProfileId) AND
+                  g.Status NOT IN (
+                    '$blackWinStatus', 
+                    '$whiteWinStatus', 
+                    '$finishedByAdminStatus',
+                    '$blackSurrender',
+                    '$whiteSurrender'
+                )
+        QUERY;
+
+        $result = $this->_sqlite->exec($query);
+
+        if ($result === false){
+            throw new DatabaseError($this->_sqlite,
+                "[SetGameBoard] Unexpected sqLite3 answer");
+        }
+    }
+
+    public function SetGameStatus(string $login, string $status):void
+    {
+        $blackWinStatus = Strings::$GAME_STATUS_BLACK_WIN;
+        $whiteWinStatus = Strings::$GAME_STATUS_WHITE_WIN;
+        $finishedByAdminStatus = Strings::$GAME_STATUS_FINISHED_BY_ADMIN;
+        $blackSurrender = Strings::$GAME_STATUS_BLACK_SURRENDER;
+        $whiteSurrender = Strings::$GAME_STATUS_WHITE_SURRENDER;
+
+        $query = <<<QUERY
+            UPDATE Games AS g
+            SET g.Status = '$status'
+            FROM Profiles AS p
+            WHERE p.Login = '$login' AND 
+                  p.Id IN (g.WhitePlayerProfileId, g.BlackPlayerProfileId) AND
+                  g.Status NOT IN (
+                    '$blackWinStatus', 
+                    '$whiteWinStatus', 
+                    '$finishedByAdminStatus',
+                    '$blackSurrender',
+                    '$whiteSurrender'
+                )
+        QUERY;
+
+        $result = $this->_sqlite->exec($query);
+
+        if ($result === false){
+            throw new DatabaseError($this->_sqlite,
+                "[SetGameStatus] Unexpected sqLite3 answer");
+        }
+    }
+
     public function ForceFinishGames(string $login):void
     {
         $blackWinStatus = Strings::$GAME_STATUS_BLACK_WIN;
         $whiteWinStatus = Strings::$GAME_STATUS_WHITE_WIN;
         $finishedByAdminStatus = Strings::$GAME_STATUS_FINISHED_BY_ADMIN;
+        $blackSurrender = Strings::$GAME_STATUS_BLACK_SURRENDER;
+        $whiteSurrender = Strings::$GAME_STATUS_WHITE_SURRENDER;
 
         $query = <<<QUERY
             UPDATE Games
             SET Status = '$finishedByAdminStatus'
             FROM Profiles AS p
             WHERE p.Login = '$login' AND p.Id IN (WhitePlayerProfileId, BlackPlayerProfileId) AND
-                  Status NOT IN ('$blackWinStatus', '$whiteWinStatus', '$finishedByAdminStatus');
+                  Status NOT IN (
+                    '$blackWinStatus', 
+                    '$whiteWinStatus', 
+                    '$finishedByAdminStatus',
+                    '$blackSurrender',
+                    '$whiteSurrender'
+                );
         QUERY;
 
         $result = $this->_sqlite->exec($query);

@@ -15,6 +15,11 @@ class BoardRow implements JsonSerializable
 {
     private Array $_boardCells;
 
+    public function getBoardCells(): array
+    {
+        return $this->_boardCells;
+    }
+
     public function __construct(BoardRowInitializeType $rowType = BoardRowInitializeType::EMPTY){
 
         switch ($rowType){
@@ -84,5 +89,11 @@ class BoardRow implements JsonSerializable
     public function jsonSerialize(): array
     {
         return $this->_boardCells;
+    }
+
+    public function LoadBoardRow(array $jsonObject):void{
+        foreach ($jsonObject as $index=>$cell) {
+            $this->_boardCells[$index]->LoadBoardCell($cell);
+        }
     }
 }

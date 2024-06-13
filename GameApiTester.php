@@ -54,6 +54,10 @@
             <div><label for="Vasa1AuthKey">Ключ авторизации:</label></div>
             <div><input type="text" id="Vasa1AuthKey"></div>
         </div>
+        <div>
+            <div>Статус авторизации:</div>
+            <div id="Vasa1AuthStatus"></div>
+        </div>
     </div>
 </div>
 <div id="Board"></div>

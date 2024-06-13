@@ -23,9 +23,16 @@
     width: 10vmin;
 }
 
-#Board>div>div{
+#Board>div>div,
+#Board>div>span{
     width: 4vmin;
     height: 4vmin;
+}
+
+
+#Board>div>span{
+    position: relative;
+    top: 0.7vmin;
 }
 
 #Board>div:nth-child(2n)>div:nth-child(2n),
@@ -102,4 +109,14 @@
 .B>div,
 .BR>div{
     background-color: #620707;
+}
+
+.movie {
+    width: 40%;
+    height: 40%;
+    border-radius: 50%;
+    top: 30%;
+    left: 30%;
+    position: relative;
+    background-color: #397737;
 }

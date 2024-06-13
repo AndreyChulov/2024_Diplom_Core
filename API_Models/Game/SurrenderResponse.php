@@ -8,20 +8,20 @@ use API_Models\BaseResponse;
 use OpenApi\Attributes as OA;
 
 #[OA\Schema(
-    schema: "Game start response schema",
+    schema: "Game surrender response schema",
     properties: [
         new OA\Property(
             property: "Message",
             description: <<<DESCRIPTION
-                Сообщение о статусе созданной игры
-                (если получен ответ, сообщение говорит подключении игрока к игре либо о начале новой игры)
+                Сообщение о статусе выполнения команды
+                (если получен ответ, сообщение всегда говорит об обновлении данных игры)
                 DESCRIPTION,
             type: "string",
-            example: "Новая игра начата"
+            example: "Данные игры обновлены"
         )
     ]
 )]
-class StartResponse extends BaseResponse
+class SurrenderResponse extends BaseResponse
 {
     private string $_message;
 
