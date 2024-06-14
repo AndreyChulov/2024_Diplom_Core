@@ -321,7 +321,7 @@ class ProfileController
             ),
             new OA\Response(
                 response:"401",
-                description: "Unauthorized - Неверный пароль/hash"
+                description: "Unauthorized - Неверный авторизационный ключ"
             ),
             new OA\Response(
                 response:"400",

@@ -207,22 +207,39 @@ class Database
         }
     }
 
+    public function GetProfileId(string $login):int{
+        $query = <<<QUERY
+            SELECT Id
+            FROM Profiles
+            WHERE Login = '$login'
+        QUERY;
+
+        $result = $this->_sqlite->querySingle($query);
+
+        if ($result === false){
+            throw new DatabaseError($this->_sqlite,
+                "[GetProfileId] Unexpected sqLite3 answer");
+        }
+
+        return $result;
+    }
+
     public function ConnectToGame(string $loginToConnect):void
     {
         $newStatus = Strings::$GAME_STATUS_WHITE_TURN;
         $oldStatus = Strings::$GAME_STATUS_WAIT_FOR_PLAYER;
+        $blackProfileId = $this->GetProfileId($loginToConnect);
 
         $query = <<<QUERY
-            UPDATE Games AS gu
-            SET BlackPlayerProfileId = p.Id,
+            UPDATE Games
+            SET BlackPlayerProfileId = $blackProfileId,
                 Status = '$newStatus'
-            FROM Profiles AS p
-            WHERE gu.Id IN (
-                SELECT g.Id
-                FROM Games AS g
-                WHERE g.Status = '$oldStatus' 
+            WHERE Id IN (
+                SELECT Id
+                FROM Games
+                WHERE Status = '$oldStatus' 
                 LIMIT 1
-            ) AND p.Login = '$loginToConnect'
+            )
         QUERY;
 
         $result = $this->_sqlite->exec($query);
@@ -444,14 +461,14 @@ class Database
         $newStatus = $isBlackPlayer ?
             Strings::$GAME_STATUS_BLACK_SURRENDER : Strings::$GAME_STATUS_WHITE_SURRENDER;
 
+        $profileId = $this->GetProfileId($login);
+
         $query = <<<QUERY
-            UPDATE Games AS g
-            SET Status = '$newStatus'
-            FROM Profiles AS p
-            WHERE p.Login = '$login' AND 
-                  g.GameKey = '$gameKey' AND
-                  p.Id IN (g.WhitePlayerProfileId, g.BlackPlayerProfileId) AND
-                  g.Status NOT IN (
+            UPDATE Games
+            SET Status = '$newStatus' 
+            WHERE GameKey = '$gameKey' AND
+                  $profileId IN (WhitePlayerProfileId, BlackPlayerProfileId) AND
+                  Status NOT IN (
                         '$blackWinStatus', 
                         '$whiteWinStatus', 
                         '$finishedByAdminStatus',
@@ -509,13 +526,13 @@ class Database
         $blackSurrender = Strings::$GAME_STATUS_BLACK_SURRENDER;
         $whiteSurrender = Strings::$GAME_STATUS_WHITE_SURRENDER;
 
+        $profileId = $this->GetProfileId($login);
+
         $query = <<<QUERY
-            UPDATE Games AS g
-            SET g.Board = '$board'
-            FROM Profiles AS p
-            WHERE p.Login = '$login' AND 
-                  p.Id IN (g.WhitePlayerProfileId, g.BlackPlayerProfileId) AND
-                  g.Status NOT IN (
+            UPDATE Games
+            SET Board = '$board'
+            WHERE $profileId IN (WhitePlayerProfileId, BlackPlayerProfileId) AND
+                  Status NOT IN (
                     '$blackWinStatus', 
                     '$whiteWinStatus', 
                     '$finishedByAdminStatus',
@@ -540,13 +557,13 @@ class Database
         $blackSurrender = Strings::$GAME_STATUS_BLACK_SURRENDER;
         $whiteSurrender = Strings::$GAME_STATUS_WHITE_SURRENDER;
 
+        $profileId = $this->GetProfileId($login);
+
         $query = <<<QUERY
-            UPDATE Games AS g
-            SET g.Status = '$status'
-            FROM Profiles AS p
-            WHERE p.Login = '$login' AND 
-                  p.Id IN (g.WhitePlayerProfileId, g.BlackPlayerProfileId) AND
-                  g.Status NOT IN (
+            UPDATE Games
+            SET Status = '$status'
+            WHERE $profileId IN (WhitePlayerProfileId, BlackPlayerProfileId) AND
+                  Status NOT IN (
                     '$blackWinStatus', 
                     '$whiteWinStatus', 
                     '$finishedByAdminStatus',
@@ -571,11 +588,12 @@ class Database
         $blackSurrender = Strings::$GAME_STATUS_BLACK_SURRENDER;
         $whiteSurrender = Strings::$GAME_STATUS_WHITE_SURRENDER;
 
+        $profileId = $this->GetProfileId($login);
+
         $query = <<<QUERY
             UPDATE Games
             SET Status = '$finishedByAdminStatus'
-            FROM Profiles AS p
-            WHERE p.Login = '$login' AND p.Id IN (WhitePlayerProfileId, BlackPlayerProfileId) AND
+            WHERE $profileId IN (WhitePlayerProfileId, BlackPlayerProfileId) AND
                   Status NOT IN (
                     '$blackWinStatus', 
                     '$whiteWinStatus', 

@@ -29,7 +29,7 @@ $response = $controller->$apiFunction($request);
 $statusCode = $response->getStatusCode();
 http_response_code($statusCode);
 
-if ($statusCode != 200) {
+if ($statusCode < 200 || $statusCode > 299) {
     exit();
 }
 
