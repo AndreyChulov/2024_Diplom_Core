@@ -26,6 +26,9 @@
             <div>Статус авторизации:</div>
             <div id="VasaAuthStatus"></div>
         </div>
+        <div>
+            <div><button id="VasaSurrender">Сдаться</button></div>
+        </div>
     </div>
     <div>
         <div>
@@ -44,6 +47,12 @@
             <div>Логин черных:</div>
             <div id="BlackPlayerLogin"></div>
         </div>
+        <div>
+            <div><button id="GetGameInfo">Обновить полную информацию об игре</button></div>
+        </div>
+        <div>
+            <div><button id="GetGameBoard">Обновить игровую доску</button></div>
+        </div>
     </div>
     <div>
         <div>
@@ -57,6 +66,9 @@
         <div>
             <div>Статус авторизации:</div>
             <div id="Vasa1AuthStatus"></div>
+        </div>
+        <div>
+            <div><button id="Vasa1Surrender">Сдаться</button></div>
         </div>
     </div>
 </div>

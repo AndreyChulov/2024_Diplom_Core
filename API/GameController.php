@@ -166,6 +166,10 @@ class GameController
         $serializedBoard = json_encode($board);
         $gameKey = dechex(rand()).dechex(rand()).dechex(rand());
 
+        while ($database->IsGameExistByGameKey($gameKey)){
+            $gameKey = dechex(rand()).dechex(rand()).dechex(rand());
+        }
+
         $database->CreateGame($login, $gameKey, $serializedBoard);
 
         return new StartResponse(201, Strings::$GAME_NEW_STARTED);
@@ -259,12 +263,6 @@ class GameController
         tags: ['Game'],
         parameters: [
             new OA\QueryParameter(
-                ref: "#/components/parameters/GameStatus_LoginParameter"
-            ),
-            new OA\QueryParameter(
-                ref: "#/components/parameters/GameStatus_KeyParameter"
-            ),
-            new OA\QueryParameter(
                 ref: "#/components/parameters/GameStatus_GameKeyParameter"
             )
         ],
@@ -272,14 +270,6 @@ class GameController
             new OA\Response(
                 response:"404",
                 description: "Wrong request method"
-            ),
-            new OA\Response(
-                response:"406",
-                description: "Not Acceptable - Неверный/несуществующий логин"
-            ),
-            new OA\Response(
-                response:"401",
-                description: "Unauthorized - Неверный пароль/hash"
             ),
             new OA\Response(
                 response:"400",
@@ -290,7 +280,7 @@ class GameController
             new OA\Response(
                 response:"403",
                 description: <<<DESCRIPTION
-                        Forbidden - нельзя получить данные игры, запрошенная активная игра не существует
+                        Forbidden - нельзя получить данные игры, запрошенная игра не существует
                     DESCRIPTION
             ),
             new OA\Response(
@@ -312,22 +302,14 @@ class GameController
         }
 
         $globals = new Globals();
-        $login = $request->getLogin();
+        $gameKey = $request->getGameKey();
         $database = $globals->getDatabase();
 
-        if (!$database->IsProfileExists($login)){
-            return new GameStatusResponse(406, Strings::$LOGIN_NOT_EXISTS);
-        }
-
-        if (!$database->ValidateAuthorizationKey($login, $request->getKey())){
-            return new GameStatusResponse(401, Strings::$KEY_WRONG);
-        }
-
-        if (!$database->IsExactGameExist($login, $request->getGameKey())){
+        if (!$database->IsGameExistByGameKey($gameKey)){
             return new GameStatusResponse(403, Strings::$GAME_NOT_EXISTS);
         }
 
-        $gameStatus = $database->GetGameStatus($login);
+        $gameStatus = $database->GetGameStatusByGameKey($gameKey);
 
         return new GameStatusResponse(200, Strings::$GAME_INFO_RETRIEVED, $gameStatus);
     }
@@ -340,12 +322,6 @@ class GameController
         tags: ['Game'],
         parameters: [
             new OA\QueryParameter(
-                ref: "#/components/parameters/GameBoard_LoginParameter"
-            ),
-            new OA\QueryParameter(
-                ref: "#/components/parameters/GameBoard_KeyParameter"
-            ),
-            new OA\QueryParameter(
                 ref: "#/components/parameters/GameBoard_GameKeyParameter"
             )
         ],
@@ -353,14 +329,6 @@ class GameController
             new OA\Response(
                 response:"404",
                 description: "Wrong request method"
-            ),
-            new OA\Response(
-                response:"406",
-                description: "Not Acceptable - Неверный/несуществующий логин"
-            ),
-            new OA\Response(
-                response:"401",
-                description: "Unauthorized - Неверный пароль/hash"
             ),
             new OA\Response(
                 response:"400",
@@ -371,7 +339,7 @@ class GameController
             new OA\Response(
                 response:"403",
                 description: <<<DESCRIPTION
-                        Forbidden - нельзя получить данные игры, запрошенная активная игра не существует
+                        Forbidden - нельзя получить данные игры, запрошенная игра не существует
                     DESCRIPTION
             ),
             new OA\Response(
@@ -393,22 +361,14 @@ class GameController
         }
 
         $globals = new Globals();
-        $login = $request->getLogin();
+        $gameKey = $request->getGameKey();
         $database = $globals->getDatabase();
 
-        if (!$database->IsProfileExists($login)){
-            return new GameBoardResponse(406, Strings::$LOGIN_NOT_EXISTS);
-        }
-
-        if (!$database->ValidateAuthorizationKey($login, $request->getKey())){
-            return new GameBoardResponse(401, Strings::$KEY_WRONG);
-        }
-
-        if (!$database->IsExactGameExist($login, $request->getGameKey())){
+        if (!$database->IsGameExistByGameKey($gameKey)){
             return new GameBoardResponse(403, Strings::$GAME_NOT_EXISTS);
         }
 
-        $gameBoard = $database->GetGameBoard($login);
+        $gameBoard = $database->GetGameBoardByGameKey($gameKey);
 
         return new GameBoardResponse(200, Strings::$GAME_INFO_RETRIEVED, $gameBoard);
     }
@@ -760,20 +720,25 @@ class GameController
             return new MoveResponse(401, Strings::$KEY_WRONG);
         }
 
-        if (!$database->IsExactGameExist($login, $request->getGameKey())){
+        $gameKey = $request->getGameKey();
+
+        if (!$database->IsExactGameExist($login, $gameKey)){
             return new MoveResponse(403, Strings::$GAME_NOT_EXISTS);
         }
 
-        $gameBoard = $database->GetGameBoard($login);
+        $gameBoard = $database->GetGameBoardByGameKey($gameKey);
         $board = new Board(BoardInitializeType::EMPTY_BOARD);
         $board->LoadBoardState(json_decode($gameBoard));
         $move = $request->getMove();
         $fromAddress = substr($move, 0, 2);
         $moveType = $move[2];
         $isBlackPlayer = $database->IsBlackPlayer($login);
+        $gameStatus = $database->GetGameStatusByGameKey($gameKey);
 
         if (!$board->IsCheckerOnBoardCell($fromAddress) ||
             $board->IsBlackCheckerOnAddress($fromAddress) != $isBlackPlayer ||
+            ($gameStatus === Strings::$GAME_STATUS_WHITE_TURN && $isBlackPlayer === true) ||
+            ($gameStatus === Strings::$GAME_STATUS_BLACK_TURN && $isBlackPlayer === false) ||
             !$board->IsMoveValid($move)){
             return new MoveResponse(412, Strings::$MOVE_INVALID);
         }

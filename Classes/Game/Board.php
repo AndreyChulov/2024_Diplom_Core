@@ -116,7 +116,7 @@ class Board implements JsonSerializable
 
         $checker = $fromCell->getChecker();
 
-        if ($toRow === $checker->getIsBlack() ? 0 : 7){
+        if ($toRow === ($checker->getIsBlack() ? 0 : 7)){
             $checker->setIsRoyal(true);
         }
 

@@ -315,6 +315,24 @@ class Database
         return $result > 0;
     }
 
+    public function IsGameExistByGameKey(string $gameKey):bool
+    {
+        $query = <<<QUERY
+            SELECT count(*)
+            FROM Games
+            WHERE GameKey ='$gameKey';
+        QUERY;
+
+        $result = $this->_sqlite->querySingle($query);
+
+        if ($result === false){
+            throw new DatabaseError($this->_sqlite,
+                "[IsGameExistByGameKey] Unexpected sqLite3 answer");
+        }
+
+        return $result > 0;
+    }
+
     public function IsWaitingForPlayerGameExist(string $excludeLogin):bool
     {
         $waitForPlayerStatus = Strings::$GAME_STATUS_WAIT_FOR_PLAYER;
@@ -450,6 +468,24 @@ class Database
         return $result;
     }
 
+    public function GetGameStatusByGameKey(string $gameKey):string
+    {
+        $query = <<<QUERY
+            SELECT Status AS GameStatus 
+            FROM Games
+            WHERE GameKey = '$gameKey'
+        QUERY;
+
+        $result = $this->_sqlite->querySingle($query);
+
+        if ($result === false){
+            throw new DatabaseError($this->_sqlite,
+                "[GetGameStatusByGameKey] Unexpected sqLite3 answer");
+        }
+
+        return $result;
+    }
+
     public function SetPlayerSurrender(string $login, string $gameKey, bool $isBlackPlayer):void
     {
         $blackWinStatus = Strings::$GAME_STATUS_BLACK_WIN;
@@ -513,6 +549,24 @@ class Database
         if ($result === false){
             throw new DatabaseError($this->_sqlite,
                 "[GetGameBoard] Unexpected sqLite3 answer");
+        }
+
+        return $result;
+    }
+
+    public function GetGameBoardByGameKey(string $gameKey):string
+    {
+        $query = <<<QUERY
+            SELECT Board
+            FROM Games
+            WHERE GameKey = '$gameKey'
+        QUERY;
+
+        $result = $this->_sqlite->querySingle($query);
+
+        if ($result === false){
+            throw new DatabaseError($this->_sqlite,
+                "[GetGameBoardByGameKey] Unexpected sqLite3 answer");
         }
 
         return $result;

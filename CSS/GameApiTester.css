@@ -16,7 +16,12 @@
 }
 
 .gameInfo>div>div>*{
-    padding: 2vmin;
+    padding: 1vmin;
+}
+
+button{
+    width: 100%;
+    border-radius: 2vmin;
 }
 
 .gameInfo input{
