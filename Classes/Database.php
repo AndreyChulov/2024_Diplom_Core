@@ -468,6 +468,63 @@ class Database
         return $result;
     }
 
+    public function GetGameHistory(string $gameKey):string
+    {
+        $query = <<<QUERY
+            SELECT gh.History AS History 
+            FROM Games AS g, GamesHistory AS gh
+            WHERE g.GameKey = '$gameKey' AND
+                  g.Id = gh.GamesId
+        QUERY;
+
+        $result = $this->_sqlite->querySingle($query);
+
+        if ($result === false){
+            throw new DatabaseError($this->_sqlite,
+                "[GetGameHistory] Unexpected sqLite3 answer");
+        }
+
+        return $result;
+    }
+
+    public function CreateGameHistory(string $gameKey, string $gameHistory):void
+    {
+        $query = <<<QUERY
+            INSERT INTO GamesHistory (GamesId, History)
+            SELECT Id AS GamesId, 
+                   '$gameHistory' AS History
+            FROM Games
+            WHERE GameKey = '$gameKey'
+        QUERY;
+
+        $result = $this->_sqlite->exec($query);
+
+        if ($result === false){
+            throw new DatabaseError($this->_sqlite,
+                "[CreateGameHistory] Unexpected sqLite3 answer");
+        }
+    }
+
+    public function SetGameHistory(string $gameKey, string $gameHistory):void
+    {
+        $query = <<<QUERY
+            UPDATE GamesHistory
+            SET History = '$gameHistory'
+            WHERE GamesId IN (
+                SELECT Id
+                FROM Games
+                WHERE GameKey = '$gameKey'
+            )
+        QUERY;
+
+        $result = $this->_sqlite->exec($query);
+
+        if ($result === false){
+            throw new DatabaseError($this->_sqlite,
+                "[SetGameHistory] Unexpected sqLite3 answer");
+        }
+    }
+
     public function GetGameStatusByGameKey(string $gameKey):string
     {
         $query = <<<QUERY
@@ -634,6 +691,25 @@ class Database
         }
     }
 
+    public function SetGameFinishedTime(string $login, string $gameKey):void
+    {
+        $profileId = $this->GetProfileId($login);
+
+        $query = <<<QUERY
+            UPDATE Games
+            SET Finished = DATETIME('NOW')
+            WHERE $profileId IN (WhitePlayerProfileId, BlackPlayerProfileId) AND
+                  GameKey = '$gameKey'
+        QUERY;
+
+        $result = $this->_sqlite->exec($query);
+
+        if ($result === false){
+            throw new DatabaseError($this->_sqlite,
+                "[SetGameFinishedTime] Unexpected sqLite3 answer");
+        }
+    }
+
     public function ForceFinishGames(string $login):void
     {
         $blackWinStatus = Strings::$GAME_STATUS_BLACK_WIN;
@@ -646,7 +722,8 @@ class Database
 
         $query = <<<QUERY
             UPDATE Games
-            SET Status = '$finishedByAdminStatus'
+            SET Status = '$finishedByAdminStatus',
+                Finished = DATETIME('NOW')
             WHERE $profileId IN (WhitePlayerProfileId, BlackPlayerProfileId) AND
                   Status NOT IN (
                     '$blackWinStatus', 

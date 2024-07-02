@@ -8,11 +8,13 @@ require_once "$localFolder/BoardRow.php";
 require_once "$localFolder/BoardInitializeType.php";
 require_once "$localFolder/ChessAddressTranslator.php";
 require_once "$localFolder/MoveDirectionType.php";
+require_once "$localFolder/../GameHistory/GameHistory.php";
 
 use Classes\Game\BoardInitializeType;
 use Classes\Game\BoardRow;
 use Classes\Game\ChessAddressTranslator;
 use Classes\Game\MoveDirectionType;
+use Classes\GameHistory\GameHistory;
 use JsonSerializable;
 
 class Board implements JsonSerializable
@@ -75,10 +77,10 @@ class Board implements JsonSerializable
         return $this->_boardRows[$row]->getBoardCells()[$column]->getChecker()->getIsBlack();
     }
 
-    public function IsMoveValid(string $move): bool
+    public function IsMoveValid(string $move, GameHistory $gameHistory): bool
     {
         $fromAddress = substr($move, 0, 2);
-        $availableMovies = $this->GetAvailableCheckerMoves($fromAddress);
+        $availableMovies = $this->GetAvailableCheckerMoves($fromAddress, $gameHistory);
 
         if (in_array($move, $availableMovies, true)) {
             return true;
@@ -93,7 +95,7 @@ class Board implements JsonSerializable
 
         foreach ($this->_boardRows as $boardRow) {
             foreach ($boardRow->getBoardCells() as $boardCell){
-                if ($isSearchBlackCheckers === $boardCell->getChecker()->getIsBlack()){
+                if ($isSearchBlackCheckers === $boardCell->getChecker()?->getIsBlack()){
                     return false;
                 }
             }
@@ -130,13 +132,13 @@ class Board implements JsonSerializable
         }
     }
 
-    public function IsContinueMoveExist(string $move): bool
+    public function IsContinueMoveExist(string $move, GameHistory $gameHistory): bool
     {
         $toAddress = substr($move, 3);
-        $acceptableMovies = $this->GetAvailableCheckerMoves($toAddress);
+        $acceptableMovies = $this->GetAvailableCheckerMovesInternal($toAddress, $gameHistory);
 
-        foreach ($acceptableMovies as $movie) {
-            if ($move[2] === "*"){
+        foreach ($acceptableMovies as $acceptableMovie) {
+            if ($acceptableMovie[2] === "*"){
                 return true;
             }
         }
@@ -144,7 +146,26 @@ class Board implements JsonSerializable
         return false;
     }
 
-    public function GetAvailableCheckerMoves(string $chessAddress): array
+    public function GetAvailableCheckerMoves(string $chessAddress, GameHistory $gameHistory): array
+    {
+        $row = ChessAddressTranslator::GetRowIndex($chessAddress);
+        $column = ChessAddressTranslator::GetColumnIndex($chessAddress);
+        $checker = $this->_boardRows[$row]->getBoardCells()[$column]->getChecker();
+        $isBlackChecker = $checker->getIsBlack();
+
+        $moves = $this->GetAvailableMoves($isBlackChecker, $gameHistory);
+        $checkerMovies = [];
+
+        foreach ($moves as $move) {
+            if (substr($move, 0, 2) === $chessAddress){
+                $checkerMovies[] = $move;
+            }
+        }
+
+        return $checkerMovies;
+    }
+
+    private function GetAvailableCheckerMovesInternal(string $chessAddress, GameHistory $gameHistory): array
     {
         $row = ChessAddressTranslator::GetRowIndex($chessAddress);
         $column = ChessAddressTranslator::GetColumnIndex($chessAddress);
@@ -152,6 +173,11 @@ class Board implements JsonSerializable
         $isBlackChecker = $checker->getIsBlack();
         $isRoyalChecker = $checker->getIsRoyal();
         $maxMoveLength = $isRoyalChecker ? 8 : 2;
+        $isContinuousTurn = ($gameHistory->getIsBlackLastTurn() ?? !$isBlackChecker) == $isBlackChecker;
+
+        if ($isContinuousTurn && ($gameHistory->getLastTurnToAddress() !== $chessAddress)){
+            return [];
+        }
 
         $topLeftMovies = $this->GetMovies($row, $column, $isBlackChecker, $maxMoveLength,
             MoveDirectionType::TOP_LEFT);
@@ -179,11 +205,9 @@ class Board implements JsonSerializable
                     $bottomLeftMovies, $bottomRightMovies, $topRightMovies, $topLeftMovies);
             }
         }
-
-        return $result;
     }
 
-    public function GetAvailableMoves(bool $isBlackPlayer): array
+    public function GetAvailableMoves(bool $isBlackPlayer, GameHistory $gameHistory): array
     {
         $result = [];
 
@@ -193,12 +217,14 @@ class Board implements JsonSerializable
                 $boardCell = $this->_boardRows[$rowCounter]->getBoardCells()[$columnCounter];
 
                 if ($boardCell->IsCheckerOnCell() && $boardCell->getChecker()->getIsBlack() === $isBlackPlayer){
-                    $result = $this->AddMovies($result, $this->GetAvailableCheckerMoves($address));
+                    $result = $this->AddMovies($result, $this->GetAvailableCheckerMovesInternal($address, $gameHistory));
                 }
             }
         }
 
-        return $result;
+        $getEnemiesMovies = array_filter($result, function ($move) {return $move[2] == "*";});
+
+        return count($getEnemiesMovies) == 0 ? $result : $getEnemiesMovies;
     }
 
     private function ConstructRegularCheckerMovies(
@@ -224,7 +250,9 @@ class Board implements JsonSerializable
             }
         }
 
-        return $result;
+        $getEnemiesMovies = array_filter($result, function ($move) {return $move[2] == "*";});
+
+        return count($getEnemiesMovies) == 0 ? $result : $getEnemiesMovies;
     }
 
     private function ConstructRoyalCheckerMovies(
@@ -238,12 +266,14 @@ class Board implements JsonSerializable
         $result = $this->AddMovies($result, $backwardLeftMovies);
         $result = $this->AddMovies($result, $backwardRightMovies);
 
-        return $result;
+        $getEnemiesMovies = array_filter($result, function ($move) {return $move[2] == "*";});
+
+        return count($getEnemiesMovies) == 0 ? $result : $getEnemiesMovies;
     }
 
     private function AddMovies(array $movies, array $pushMovies, int $maxPushCount = 8*8*8):array
     {
-        if (count($pushMovies) === 0){
+        if (count($pushMovies) == 0){
             return $movies;
         }
 

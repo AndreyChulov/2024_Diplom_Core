@@ -35,10 +35,12 @@ $currentFolder = dirname(__FILE__);
 
 require_once "$currentFolder/../Classes/Game/Board.php";
 require_once "$currentFolder/../Classes/Game/BoardInitializeType.php";
+require_once "$currentFolder/../Classes/GameHistory/GameHistory.php";
 
 use OpenApi\Attributes as OA;
 use Classes\Game\Board;
 use Classes\Game\BoardInitializeType;
+use Classes\GameHistory\GameHistory;
 use API_Models\Game\StartRequest;
 use API_Models\Game\StartResponse;
 use API_Models\Game\GameInfoRequest;
@@ -171,6 +173,9 @@ class GameController
         }
 
         $database->CreateGame($login, $gameKey, $serializedBoard);
+        $gameHistory = new GameHistory();
+        $gameHistorySerialized = json_encode($gameHistory);
+        $database->CreateGameHistory($gameKey, $gameHistorySerialized);
 
         return new StartResponse(201, Strings::$GAME_NEW_STARTED);
     }
@@ -469,7 +474,10 @@ class GameController
             return new CheckerAcceptableMoviesResponse(412, Strings::$CHECKER_NOT_FOUND);
         }
 
-        $movies = $board->GetAvailableCheckerMoves($chessAddress);
+        $gameHistorySerialized = $database->GetGameHistory($request->getGameKey());
+        $gameHistory = new GameHistory();
+        $gameHistory->LoadFromJsonObject(json_decode($gameHistorySerialized));
+        $movies = $board->GetAvailableCheckerMoves($chessAddress, $gameHistory);
 
         return new CheckerAcceptableMoviesResponse(
             200, Strings::$GAME_INFO_RETRIEVED, json_encode($movies));
@@ -555,7 +563,10 @@ class GameController
         $board = new Board(BoardInitializeType::EMPTY_BOARD);
         $board->LoadBoardState(json_decode($gameBoard));
 
-        $movies = $board->GetAvailableMoves($database->IsBlackPlayer($login));
+        $gameHistorySerialized = $database->GetGameHistory($request->getGameKey());
+        $gameHistory = new GameHistory();
+        $gameHistory->LoadFromJsonObject(json_decode($gameHistorySerialized));
+        $movies = $board->GetAvailableMoves($database->IsBlackPlayer($login), $gameHistory);
 
         return new AcceptableMoviesResponse(
             200, Strings::$GAME_INFO_RETRIEVED, json_encode($movies));
@@ -735,15 +746,24 @@ class GameController
         $isBlackPlayer = $database->IsBlackPlayer($login);
         $gameStatus = $database->GetGameStatusByGameKey($gameKey);
 
+        $gameHistorySerialized = $database->GetGameHistory($gameKey);
+        $gameHistory = new GameHistory();
+        $gameHistory->LoadFromJsonObject(json_decode($gameHistorySerialized));
+
         if (!$board->IsCheckerOnBoardCell($fromAddress) ||
             $board->IsBlackCheckerOnAddress($fromAddress) != $isBlackPlayer ||
             ($gameStatus === Strings::$GAME_STATUS_WHITE_TURN && $isBlackPlayer === true) ||
             ($gameStatus === Strings::$GAME_STATUS_BLACK_TURN && $isBlackPlayer === false) ||
-            !$board->IsMoveValid($move)){
+            !$board->IsMoveValid($move, $gameHistory)){
             return new MoveResponse(412, Strings::$MOVE_INVALID);
         }
 
         $board->ApplyMove($move);
+
+        $gameHistory->AddTurn($move, $isBlackPlayer);
+        $gameHistorySerialized = json_encode($gameHistory);
+        $database->SetGameHistory($gameKey, $gameHistorySerialized);
+
         $serializedBoard = json_encode($board);
         $database->SetGameBoard($login, $serializedBoard);
 
@@ -756,8 +776,9 @@ class GameController
             if ($isPlayerWin){
                 $database->SetGameStatus($login, $isBlackPlayer ?
                     Strings::$GAME_STATUS_BLACK_WIN : Strings::$GAME_STATUS_WHITE_WIN);
+                $database->SetGameFinishedTime($login, $gameKey);
             } else {
-                if (!$board->IsContinueMoveExist($move)){
+                if (!$board->IsContinueMoveExist($move, $gameHistory)){
                     $database->SetGameStatus($login, $isBlackPlayer ?
                         Strings::$GAME_STATUS_WHITE_TURN : Strings::$GAME_STATUS_BLACK_TURN);
                 }
